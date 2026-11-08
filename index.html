@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101014">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="YUKI CINE">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+<title>YUKI CINE STUDIO</title>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brandmark">Y</span><div><b>YUKI CINE</b><small>AI FILM PRODUCTION STUDIO</small></div></div>
+  <button class="iconbtn" id="installBtn" hidden>＋ Cài app</button>
+</header>
+<main>
+<section id="home" class="page active">
+  <div class="hero">
+    <p class="eyebrow">MOBILE FILM WORKSPACE</p>
+    <h1>Biến ý tưởng<br><em>thành thước phim.</em></h1>
+    <p class="muted">Không gian tiền kỳ điện ảnh trên iPhone. Lên ý tưởng, chia cảnh, tạo prompt và quản lý tài nguyên trong một nơi.</p>
+    <button class="primary" id="newProjectBtn">＋ Tạo dự án mới</button>
+  </div>
+  <div class="sectionhead"><div><p class="eyebrow">WORKSPACE</p><h2>Dự án của bạn</h2></div><span class="count" id="projectCount">0 dự án</span></div>
+  <div id="projectList" class="projectlist"></div>
+  <div class="note"><b>ⓘ Bản MVP</b><br>Hiện tại ứng dụng hỗ trợ tiền kỳ, storyboard và prompt. Tạo video AI và render MP4 cần kết nối dịch vụ máy chủ ở bước tiếp theo.</div>
+</section>
+
+<section id="create" class="page">
+  <button class="back" data-go="home">← Quay lại</button>
+  <p class="eyebrow">NEW PRODUCTION</p><h1>Tạo phim mới</h1>
+  <label>Tên dự án<input id="pTitle" placeholder="Ví dụ: Ngôi nhà gỗ giữa núi sương"></label>
+  <label>Ý tưởng / nội dung<textarea id="pIdea" rows="4" placeholder="Mô tả câu chuyện hoặc hình ảnh bạn muốn tạo..."></textarea></label>
+  <div class="two">
+    <label>Mục đích<select id="pPurpose"><option value="cinematic">Phim điện ảnh</option><option value="ad">Quảng cáo / sản phẩm</option><option value="social">Video mạng xã hội</option><option value="music">MV / video âm nhạc</option></select></label>
+    <label>Thời lượng<select id="pDuration"><option>15 giây</option><option selected>30 giây</option><option>60 giây</option><option>90 giây</option><option>3 phút</option></select></label>
+  </div>
+  <div class="two">
+    <label>Tỷ lệ khung hình<select id="pRatio"><option value="9:16">9:16 – Reels / TikTok</option><option value="16:9">16:9 – YouTube</option><option value="1:1">1:1 – Vuông</option></select></label>
+    <label>Ngôn ngữ<select id="pLanguage"><option>Tiếng Việt</option><option>Tiếng Anh</option><option>Song ngữ</option></select></label>
+  </div>
+  <label>Phong cách hình ảnh<select id="pStyle"><option>Điện ảnh siêu thực</option><option>Dark cinematic – ma mị</option><option>Fashion editorial</option><option>Anime / hoạt hình</option><option>3D stylized</option><option>Quảng cáo cao cấp</option><option>Tài liệu chân thực</option></select></label>
+  <label>Âm thanh<select id="pAudio"><option>Nhạc nền + hiệu ứng</option><option>Voice-over + nhạc nền</option><option>Chỉ âm thanh môi trường</option><option>Không âm thanh</option></select></label>
+  <button class="primary full" id="createProjectBtn">Tạo storyboard</button>
+</section>
+
+<section id="project" class="page">
+  <button class="back" data-go="home">← Dự án</button>
+  <div class="project-title-row"><div><p class="eyebrow">PROJECT WORKSPACE</p><h1 id="activeTitle">Dự án</h1></div><button class="iconbtn" id="deleteProjectBtn">Xóa</button></div>
+  <div class="meta" id="projectMeta"></div>
+  <div class="tabs"><button class="tab active" data-tab="story">Storyboard</button><button class="tab" data-tab="prompts">Prompt Studio</button><button class="tab" data-tab="characters">Nhân vật</button><button class="tab" data-tab="assets">Tài nguyên</button><button class="tab" data-tab="export">Xuất</button></div>
+  <div id="tab-story" class="tabpane active">
+    <div class="sectionhead"><h2>Các phân cảnh</h2><button class="smallbtn" id="addSceneBtn">＋ Thêm cảnh</button></div>
+    <div id="sceneList"></div>
+    <button class="primary full" id="generateShotsBtn">✦ Tạo gợi ý phân cảnh</button>
+  </div>
+  <div id="tab-prompts" class="tabpane">
+    <p class="muted">Tạo prompt theo ý tưởng dự án và từng cảnh. Bạn có thể chỉnh sửa rồi sao chép sang công cụ tạo video AI.</p>
+    <label>Chọn cảnh<select id="promptScene"></select></label>
+    <label>Prompt tiếng Việt<textarea id="promptVi" rows="6"></textarea></label>
+    <label>Prompt tiếng Anh<textarea id="promptEn" rows="6"></textarea></label>
+    <div class="settingscard"><b>Motion Studio</b><p class="muted">Điều khiển nhịp chuyển động và ngôn ngữ camera cho cảnh đang chọn.</p>
+      <label>Nhịp chuyển động<select id="motionPace"><option>Slow cinematic</option><option>Natural real-time</option><option>Dynamic fast</option><option>Dreamlike slow motion</option></select></label>
+      <label>Kiểu chuyển động<select id="motionType"><option>Subtle subject motion + camera drift</option><option>Camera move only</option><option>Full-body action</option><option>Environmental motion</option><option>One continuous tracking shot</option></select></label>
+      <button class="secondary full" id="appendMotionBtn">Thêm chỉ dẫn Motion vào prompt</button>
+    </div>
+    <div class="two"><button class="secondary" id="copyVi">Sao chép VI</button><button class="secondary" id="copyEn">Sao chép EN</button></div>
+  </div>
+  <div id="tab-characters" class="tabpane">
+    <h2>Character Reference & Face Lock</h2>
+    <p class="muted">Tạo hồ sơ nhân vật và ghi chú quy tắc nhất quán. Ảnh tham chiếu được chọn trên thiết bị; bản MVP chỉ lưu tên tệp và mô tả, chưa tải ảnh lên cloud.</p>
+    <label>Tên nhân vật<input id="charName" placeholder="Ví dụ: YUKI – nhân vật chính"></label>
+    <label>Mô tả nhận diện<textarea id="charIdentity" rows="3" placeholder="Đặc điểm nhận diện cần giữ nhất quán..."></textarea></label>
+    <label>Quy tắc Face Lock<select id="charLock"><option value="strict">Strict – giữ nguyên nhận diện khuôn mặt</option><option value="balanced">Balanced – giữ nhận diện, cho phép ánh sáng thay đổi</option><option value="off">Không bật Face Lock</option></select></label>
+    <label class="upload">＋ Chọn ảnh tham chiếu nhân vật<input id="charImage" type="file" accept="image/*" multiple></label>
+    <button class="primary full" id="saveCharacterBtn">Lưu hồ sơ nhân vật</button>
+    <div id="characterList" class="assetlist"></div>
+  </div>
+  <div id="tab-assets" class="tabpane">
+    <h2>Thư viện tài nguyên</h2><p class="muted">Chọn ảnh, video hoặc âm thanh từ iPhone để tham chiếu cho dự án.</p>
+    <label class="upload">＋ Chọn tệp từ iPhone<input id="assetInput" type="file" accept="image/*,video/*,audio/*" multiple></label>
+    <div id="assetList" class="assetlist"></div>
+    <p class="tiny muted">Tệp được giữ trong phiên làm việc của trình duyệt; bản MVP chưa đồng bộ lên cloud.</p>
+  </div>
+  <div id="tab-export" class="tabpane">
+    <h2>Gói bàn giao dự án</h2><p class="muted">Xuất brief và storyboard để tiếp tục sản xuất trên công cụ AI hoặc máy render.</p>
+    <div class="exportcard"><b>Project package</b><span>Thông tin dự án · phân cảnh · prompt · thiết lập xuất</span><button class="primary full" id="exportJsonBtn">Tải project JSON</button><button class="secondary full" id="exportTxtBtn">Tải kịch bản TXT</button></div>
+    <div class="note"><b>Render video</b><br>Chưa kết nối. Bước tiếp theo cần máy chủ render CineCode hoặc API tạo video. Không có video giả lập được xuất trong bản này.</div>
+  </div>
+</section>
+
+<section id="settings" class="page">
+  <p class="eyebrow">STUDIO SETTINGS</p><h1>Cài đặt</h1>
+  <div class="settingscard"><b>Trạng thái hệ thống</b><p>Giao diện PWA: <span class="ok">Sẵn sàng</span><br>Quản lý dự án cục bộ: <span class="ok">Sẵn sàng</span><br>AI video API: <span class="wait">Chưa kết nối</span><br>CineCode render worker: <span class="wait">Chưa kết nối</span></p></div>
+  <div class="settingscard"><b>Kết nối trong tương lai</b><p>API key phải được lưu ở máy chủ, tuyệt đối không nhập khóa bí mật vào mã giao diện hoặc chia sẻ trong trình duyệt.</p><p class="muted">Nhà cung cấp có thể tích hợp sau: dịch vụ tạo video, lưu trữ media và máy chủ CineCode.</p></div>
+  <div class="settingscard"><b>Dữ liệu</b><p>Dự án MVP được lưu trên trình duyệt hiện tại. Hãy xuất JSON để sao lưu trước khi xóa dữ liệu Safari.</p><button class="secondary full" id="backupBtn">Sao lưu toàn bộ dự án</button></div>
+</section>
+</main>
+<nav class="bottomnav">
+  <button class="navitem active" data-go="home"><span>⌂</span>Trang chủ</button>
+  <button class="navitem" data-go="create"><span>＋</span>Tạo phim</button>
+  <button class="navitem" data-go="settings"><span>⚙</span>Cài đặt</button>
+</nav>
+<div id="toast" class="toast"></div>
+<script src="app.js"></script>
+</body></html>
