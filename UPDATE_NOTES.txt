@@ -1,0 +1,16 @@
+YUKI CINE STUDIO V4.1 – XIAOHONGSHU / RED SOURCE PATCH
+
+Included:
+- Xiaohongshu / RED source selector option.
+- URL recognition for xhslink.com, xiaohongshu.com, and xhs.cn.
+- Explicit status/preview fallback for short links and platform restrictions.
+- Service worker cache version bump.
+
+Install:
+1. Upload the included index.html, app.js, style.css, and sw.js to the root of the existing yuki-cine-studio repository.
+2. Commit directly to the main branch (GitHub may display its translated name).
+3. Wait for GitHub Pages deployment to complete.
+4. Reopen the website in Safari. If old assets remain, close the tab and reopen; if needed clear website data for this site.
+
+Important:
+This adds Xiaohongshu source recognition only. It does not resolve xhslink short URLs on a server, bypass login, download platform videos, or perform AI analysis. If the post cannot be embedded/accessed, open it in Xiaohongshu and upload a video file you are authorized to use.

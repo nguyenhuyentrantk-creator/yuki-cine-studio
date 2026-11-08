@@ -25,7 +25,7 @@
     <p class="muted">Không gian tiền kỳ điện ảnh trên iPhone. Lên ý tưởng, chia cảnh, tạo prompt và quản lý tài nguyên trong một nơi.</p>
     <button class="primary" id="newProjectBtn">＋ Tạo dự án mới</button>
   </div>
-  <div class="reverse-cta"><div><p class="eyebrow">NEW · VIDEO REVERSE ENGINEERING</p><b>Bóc tách video gốc thành kịch bản & prompt</b><p class="muted">Dán link YouTube, TikTok, Facebook hoặc MP4 để bắt đầu.</p></div><button class="primary" data-go="reverse">Phân tích video →</button></div>
+  <div class="reverse-cta"><div><p class="eyebrow">NEW · VIDEO REVERSE ENGINEERING</p><b>Bóc tách video gốc thành kịch bản & prompt</b><p class="muted">Dán link YouTube, TikTok, Facebook, Xiaohongshu hoặc MP4 để bắt đầu.</p></div><button class="primary" data-go="reverse">Phân tích video →</button></div>
   <div class="reverse-cta audio-cta"><div><p class="eyebrow">NEW · YUKI AUDIO STUDIO</p><b>Tách âm thanh · Thêm nhạc · Ghép voice-over</b><p class="muted">Chuẩn bị xử lý âm thanh và dựng yêu cầu hậu kỳ.</p></div><button class="primary" data-go="audio">Mở Audio Studio →</button></div>
   <div class="sectionhead"><div><p class="eyebrow">WORKSPACE</p><h2>Dự án của bạn</h2></div><span class="count" id="projectCount">0 dự án</span></div>
   <div id="projectList" class="projectlist"></div>
@@ -102,9 +102,9 @@
   <p class="muted">Tiếp nhận link video, xem trước nguồn, tạo phiếu yêu cầu phân tích chuyên sâu và bóc tách storyboard theo từng cảnh.</p>
   <div class="settingscard">
     <label>Nguồn video
-      <select id="reverseSource"><option value="auto">Tự nhận diện nền tảng</option><option value="YouTube">YouTube</option><option value="TikTok">TikTok</option><option value="Facebook">Facebook</option><option value="MP4">Link MP4 trực tiếp</option></select>
+      <select id="reverseSource"><option value="auto">Tự nhận diện nền tảng</option><option value="YouTube">YouTube</option><option value="TikTok">TikTok</option><option value="Facebook">Facebook</option><option value="Xiaohongshu">Xiaohongshu / RED (小红书)</option><option value="MP4">Link MP4 trực tiếp</option></select>
     </label>
-    <label>Đường link video<input id="reverseUrl" type="url" placeholder="Dán link YouTube / TikTok / Facebook / MP4…" autocomplete="url"></label>
+    <label>Đường link video<input id="reverseUrl" type="url" placeholder="Dán link YouTube / TikTok / Facebook / Xiaohongshu / MP4…" autocomplete="url"></label>
     <label class="upload">＋ Hoặc chọn video từ iPhone (MP4 / MOV)<input id="reverseFile" type="file" accept="video/*"></label>
     <div id="reverseSourceStatus" class="tiny muted">Chưa có nguồn video.</div>
     <div class="two"><button class="secondary" id="previewReverseBtn">Xem trước nguồn</button><button class="secondary" id="openReverseSourceBtn">Mở link gốc ↗</button></div>
@@ -118,8 +118,16 @@
     </div>
     <label>Ưu tiên phân tích<select id="reverseFocus"><option>Toàn diện: hình ảnh, hành động, camera, ánh sáng, âm thanh, dựng phim</option><option>Chuyển động nhân vật và motion replication</option><option>Ngôn ngữ máy quay và bố cục điện ảnh</option><option>Kịch bản, nhịp dựng và lời thoại</option><option>Phong cách hình ảnh, màu sắc và ánh sáng</option></select></label>
     <label class="checkline"><input id="reverseRights" type="checkbox"> Tôi có quyền sử dụng video này hoặc được phép phân tích video.</label>
-    <button class="primary full" id="makeReversePromptBtn">✦ Tạo MASTER PROMPT phân tích video</button>
-    <p class="tiny muted">Nút này tạo chỉ dẫn phân tích để gửi đến AI có khả năng xem video. Nó chưa tự chạy phân tích trên website.</p>
+    <div class="settingscard" style="margin-top:14px"><b>AI ENGINE · V5</b>
+      <p class="tiny muted">Chọn nhà cung cấp đã cấu hình trên máy chủ. API key không được lưu trong trình duyệt.</p>
+      <label>Nhà cung cấp AI<select id="v5Provider"><option value="auto">Tự chọn theo máy chủ</option><option value="gemini">Google Gemini</option><option value="openai">OpenAI</option><option value="openai-compatible">OpenAI-compatible</option></select></label>
+      <div id="v5EngineStatus" class="tiny muted">Đang kiểm tra kết nối AI…</div>
+      <button class="primary full" id="runVideoAnalysisBtn">✦ PHÂN TÍCH VIDEO THẬT & XUẤT PROMPT</button>
+      <div id="v5Progress" class="tiny muted" aria-live="polite"></div>
+      <div id="v5Results" hidden></div>
+    </div>
+    <button class="secondary full" id="makeReversePromptBtn">Tạo MASTER PROMPT thủ công</button>
+    <p class="tiny muted">Phân tích tự động cần triển khai V5 Backend và cấu hình API key trên máy chủ.</p>
   </div>
   <div class="settingscard" id="reversePromptPanel" hidden>
     <div class="sectionhead"><b>MASTER PROMPT · VIDEO ANALYSIS</b><button class="textbtn" id="copyReversePromptBtn">Sao chép</button></div>
