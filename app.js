@@ -70,7 +70,26 @@ $('saveReverseAnalysisBtn').onclick=()=>{let source=currentReverseSource();if(!s
 // V5 REAL VIDEO ANALYSIS CLIENT. Requires the separately deployed Node backend.
 const V5_DEFAULT_API = 'https://yuki-cine-studio.onrender.com';
 const V5_API = (localStorage.getItem('yuki_v5_api_url') || V5_DEFAULT_API).replace(/\/$/,'');
-async function v5Check(){const el=$('v5EngineStatus');if(!el)return;if(!V5_API){el.innerHTML='Backend chưa cấu hình. <button class="textbtn" id="setV5ApiUrl">＋ Nhập URL backend</button>';const b=$('setV5ApiUrl');if(b)b.onclick=()=>{const v=prompt('Dán URL HTTPS Render, ví dụ https://yuki-cine-v5.onrender.com');if(v){localStorage.setItem('yuki_v5_api_url',v.trim().replace(/\/$/,''));location.reload()}};return}try{const r=await fetch(V5_API+'/api/health');const j=await r.json();if(!r.ok||!j.ok)throw Error('Health check failed');const p=j.providers||{};el.textContent=`Backend hoạt động · Chế độ ${j.mode||'V5'} · Vision: ${p.openrouter?'OpenRouter ✓':p.gemini?'Gemini ✓':'chưa có'} · Âm thanh: ${p.groq?'Groq ✓':'chưa cấu hình'} · Dự phòng: ${p.gemini?'Gemini ✓':'tắt'}`}catch(e){el.textContent='Không kết nối được backend. Kiểm tra URL Render và thử lại.'}}
+async function v5Check(){
+ const el=$('v5EngineStatus'); if(!el)return;
+ if(!V5_API){el.textContent='Chưa cấu hình URL backend.';return}
+ el.innerHTML='Đang kiểm tra máy chủ… <span class="muted">(tối đa 12 giây)</span>';
+ const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),12000);
+ try{
+  const r=await fetch(V5_API+'/api/health?ts='+Date.now(),{method:'GET',cache:'no-store',signal:controller.signal});
+  if(!r.ok)throw Error('HTTP '+r.status);
+  const j=await r.json(); if(!j.ok)throw Error('Health check không hợp lệ');
+  const p=j.providers||{};
+  el.textContent=`Đã kết nối · OpenRouter ${p.openrouter?'✓':'chưa có'} · Groq ${p.groq?'✓':'chưa có'} · Gemini ${p.gemini?'✓':'chưa cấu hình'}`;
+ }catch(e){
+  el.textContent=e.name==='AbortError'?'Máy chủ phản hồi quá 12 giây. Render Free có thể đang khởi động. Nhấn “Kiểm tra lại”.':'Chưa kết nối được: '+(e.message||'Lỗi mạng')+'. Kiểm tra URL hoặc CORS.';
+ }finally{clearTimeout(timer)}
+}
+if($('v5EngineStatus')){
+ const retry=document.createElement('button'); retry.type='button'; retry.className='textbtn'; retry.textContent='↻ Kiểm tra lại'; retry.onclick=v5Check;
+ $('v5EngineStatus').insertAdjacentElement('afterend',retry);
+ v5Check();
+}
 if($('changeV5ApiUrl'))$('changeV5ApiUrl').onclick=()=>{const v=prompt('Dán URL HTTPS Render của YUKI V5 Backend (không thêm /api):',V5_API||'');if(v){localStorage.setItem('yuki_v5_api_url',v.trim().replace(/\/$/,''));location.reload()}};
 if($('v5EngineStatus'))v5Check();
 if($('runVideoAnalysisBtn'))$('runVideoAnalysisBtn').onclick=async()=>{

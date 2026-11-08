@@ -1,0 +1,23 @@
+SỬA LỖI MỤC API CỨ HIỆN “ĐANG KẾT NỐI API”
+
+Thay thế đúng 3 tệp trên GitHub Pages:
+- index.html
+- app.js
+- sw.js
+
+Cách làm trên iPhone:
+1. Giải nén ZIP.
+2. Mở GitHub repository yuki-cine-studio.
+3. Chọn ... > Tải lên tệp.
+4. Chọn 3 tệp trong thư mục đã giải nén.
+5. Kéo xuống cuối và Commit changes.
+6. Chờ GitHub Pages deploy hoàn tất.
+7. Đóng hẳn Safari/PWA, mở lại trang; nếu vẫn cũ, mở URL trên Safari và tải lại.
+
+Sửa đổi:
+- Kiểm tra health có timeout 12 giây, không quay vô hạn.
+- Hiển thị lỗi cụ thể thay vì đứng ở “Đang kiểm tra”.
+- Có nút “Kiểm tra lại”.
+- Thêm cache-busting cho service worker.
+
+Không thay đổi backend hoặc API keys. Không tải ZIP nguyên gói lên GitHub.
