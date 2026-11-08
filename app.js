@@ -33,73 +33,116 @@ $('saveCharacterBtn').onclick=()=>{let p=active(),name=$('charName').value.trim(
 $('appendMotionBtn').onclick=()=>{let pace=$('motionPace').value,type=$('motionType').value,tail=` Motion direction: ${pace}; ${type}. Keep movement physically plausible, smooth and temporally consistent; avoid abrupt morphing, identity drift, extra limbs, jitter and unintended cuts.`;$('promptVi').value += ` Chỉ dẫn chuyển động: ${pace}; ${type}. Chuyển động tự nhiên, liên tục, không méo hình hoặc thay đổi nhận diện nhân vật.`;$('promptEn').value += tail;let s=active().scenes.find(x=>x.id===$('promptScene').value);if(s){s.vi=$('promptVi').value;s.en=$('promptEn').value;save()}toast('Đã thêm chỉ dẫn chuyển động')};
 
 renderHome();
-// V3 · YUKI VIDEO REVERSE ENGINEERING (front-end workspace; AI backend not connected)
-const REVERSE_KEY='yuki_cine_reverse_jobs_v1';
-let reverseScenes=[],reverseFileUrl=null,lastReversePrompt='';
-function getReverseSource(url){
-  try{
-    const u=new URL(url);if(!['http:','https:'].includes(u.protocol))return null;const h=u.hostname.replace(/^www\./,'');
-    if(h.includes('youtu.be')||h.includes('youtube.com')){
-      let id=u.searchParams.get('v')||u.pathname.match(/\/(?:shorts|embed|live)\/([^/?]+)/)?.[1]||(h==='youtu.be'?u.pathname.split('/').filter(Boolean)[0]:null);
-      return {type:'YouTube',id,embed:id?`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`:null};
-    }
-    if(h.includes('tiktok.com')){let id=u.pathname.match(/\/video\/(\d+)/)?.[1];return {type:'TikTok',id,embed:id?`https://www.tiktok.com/player/v1/${id}?description=1&music_info=1`:null};}
-    if(h.includes('facebook.com')||h==='fb.watch')return {type:'Facebook',embed:`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&width=560`};
-    if(h==='xhslink.com'||h.endsWith('.xhslink.com')||h==='xiaohongshu.com'||h.endsWith('.xiaohongshu.com')||h==='xhs.cn'||h.endsWith('.xhs.cn'))return {type:'Xiaohongshu',shortLink:h.includes('xhslink.com'),direct:false,platformUrl:url};
-    if(/\.mp4(?:$|\?)/i.test(u.pathname+u.search)||/\.m4v(?:$|\?)/i.test(u.pathname+u.search)||/\.webm(?:$|\?)/i.test(u.pathname+u.search))return {type:'MP4',direct:true};
-    return {type:'Link video',direct:false};
-  }catch(e){return null}
+
+// ===== YUKI CINE STUDIO V5: real Gemini video analysis via Cloud Run =====
+const ANALYSIS_API_KEY = 'yuki_cine_cloud_run_api_url_v1';
+let latestVideoAnalysis = null;
+const apiUrlInput = $('analysisApiUrl');
+if (apiUrlInput) {
+  apiUrlInput.value = localStorage.getItem(ANALYSIS_API_KEY) || '';
+  $('saveAnalysisApi').onclick = async () => {
+    const value = apiUrlInput.value.trim().replace(/\/+$/, '');
+    if (!/^https:\/\/.+/.test(value)) { toast('Nhập URL HTTPS của Cloud Run'); return; }
+    localStorage.setItem(ANALYSIS_API_KEY, value);
+    await checkAnalysisServer();
+  };
+  $('sourceVideoFile').onchange = e => {
+    const f = e.target.files[0];
+    $('selectedVideoName').textContent = f ? `${f.name} · ${(f.size/1024/1024).toFixed(1)} MB` : 'Chưa chọn tệp video.';
+  };
+  $('runVideoAnalysis').onclick = runRealVideoAnalysis;
+  $('copyMasterPrompt').onclick = () => copy($('analysisMasterPrompt').value);
+  $('copyAllScenePrompts').onclick = () => {
+    if (!latestVideoAnalysis) return;
+    const text = (latestVideoAnalysis.scenes || []).map((s,i) =>
+      `SCENE ${i+1} | ${s.start_time || ''} - ${s.end_time || ''}\nVI: ${s.prompt_vi || ''}\nEN: ${s.prompt_en || ''}`).join('\n\n');
+    copy(text);
+  };
+  $('exportAnalysisJson').onclick = () => {
+    if (latestVideoAnalysis) download('yuki-cine-video-analysis.json', JSON.stringify(latestVideoAnalysis,null,2), 'application/json');
+  };
+  if (localStorage.getItem(ANALYSIS_API_KEY)) checkAnalysisServer();
 }
-function currentReverseSource(){let file=$('reverseFile').files[0];if(file)return {type:'Tệp trên iPhone',file:file.name,size:file.size};let url=$('reverseUrl').value.trim();return url?getReverseSource(url):null}
-function updateReverseStatus(){let url=$('reverseUrl').value.trim(),file=$('reverseFile').files[0],s=url?getReverseSource(url):null;if(file){$('reverseSourceStatus').textContent=`Đã chọn tệp: ${file.name} · ${(file.size/1024/1024).toFixed(1)} MB. Tệp chỉ xem trước trên thiết bị, chưa tải lên máy chủ.`;return}if(!url){$('reverseSourceStatus').textContent='Chưa có nguồn video.';return}if(!s){$('reverseSourceStatus').textContent='Link chưa hợp lệ. Hãy kiểm tra lại URL.';return}if($('reverseSource').value==='auto')$('reverseSource').value=s.type==='Link video'?'auto':s.type;if(s.type==='Xiaohongshu'){$('reverseSourceStatus').textContent=`Đã nhận diện: Xiaohongshu / RED${s.shortLink?' · link rút gọn xhslink.com':''}. Hệ thống chưa tự phân giải hoặc tải video từ RED; hãy mở link gốc, hoặc tải video về iPhone rồi chọn tệp để phân tích.`;return}$('reverseSourceStatus').textContent=`Nhận diện: ${s.type}${s.id?' · ID '+s.id:''}. Xem trước không đồng nghĩa hệ thống đã đọc được toàn bộ video.`}
-function previewReverse(){let url=$('reverseUrl').value.trim(),file=$('reverseFile').files[0],box=$('reversePreview');if(reverseFileUrl){URL.revokeObjectURL(reverseFileUrl);reverseFileUrl=null}if(file){reverseFileUrl=URL.createObjectURL(file);box.innerHTML=`<video controls playsinline preload="metadata" src="${reverseFileUrl}"></video>`;updateReverseStatus();return}let s=getReverseSource(url);if(!s){box.innerHTML='<div class="empty">Hãy nhập một đường link hợp lệ trước.</div>';updateReverseStatus();return}if(s.type==='YouTube'&&s.embed)box.innerHTML=`<iframe src="${s.embed}" title="YouTube video preview" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>`;else if(s.type==='TikTok'&&s.embed)box.innerHTML=`<iframe src="${s.embed}" title="TikTok video preview" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;else if(s.type==='Facebook')box.innerHTML=`<iframe src="${s.embed}" title="Facebook video preview" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;else if(s.type==='MP4')box.innerHTML=`<video controls playsinline preload="metadata" src="${esc(url)}"></video>`;else if(s.type==='Xiaohongshu')box.innerHTML='<div class="empty"><b>Đã nhận diện Xiaohongshu / RED.</b><br>Nhấn “Mở link gốc” để mở bài đăng. Nếu video yêu cầu đăng nhập hoặc không nhúng được, hãy tải video bạn có quyền sử dụng về iPhone rồi chọn tệp ở phía trên để tiếp tục phân tích.</div>';else box.innerHTML='<div class="empty">Chưa nhận diện được trình phát cho link này. Bạn có thể mở link gốc hoặc chọn tệp video từ iPhone.</div>';updateReverseStatus()}
-$('previewReverseBtn').onclick=previewReverse;
-$('reverseUrl').onchange=()=>{ $('reverseFile').value='';updateReverseStatus(); };
-$('reverseUrl').oninput=updateReverseStatus;
-$('reverseFile').onchange=()=>{if($('reverseFile').files[0])$('reverseUrl').value='';updateReverseStatus();previewReverse()};
-$('openReverseSourceBtn').onclick=()=>{let url=$('reverseUrl').value.trim();if(url&&getReverseSource(url))window.open(url,'_blank','noopener');else toast('Hãy nhập link video trước')};
-function buildReversePrompt(){let source=currentReverseSource();if(!source){toast('Hãy dán link hoặc chọn video trước');return ''}if(!$('reverseRights').checked){toast('Vui lòng xác nhận quyền sử dụng video');return ''}let url=$('reverseUrl').value.trim();let gran=$('reverseGranularity').value,lang=$('reverseLanguage').value,focus=$('reverseFocus').value;let prompt=`VAI TRÒ: Bạn là đạo diễn hình ảnh, giám sát hậu kỳ, chuyên gia phân tích chuyển động và biên kịch phân tích video.\n\nNHIỆM VỤ: Phân tích video nguồn do người dùng cung cấp. Không bịa chi tiết không quan sát được. Nếu không thể truy cập hoặc xem video từ đường link, hãy nói rõ và yêu cầu người dùng tải video/khung hình lên trực tiếp trong phiên AI; không được giả vờ đã xem.\n\nNGUỒN THAM CHIẾU:\nLoại nguồn: ${source.type}\nURL: ${url||'(video được chọn từ thiết bị; cần đính kèm tệp trong công cụ AI)'}\nTên tệp: ${source.file||'(không có)'}\n\nMỨC PHÂN TÍCH: Chuyên sâu từng cảnh, chia theo ${gran}. Ngôn ngữ báo cáo: ${lang}. Ưu tiên: ${focus}.\n\nYÊU CẦU PHÂN TÍCH:\n1. Tóm tắt nội dung và cấu trúc câu chuyện; xác định thể loại, cảm xúc, nhịp điệu.\n2. Lập timeline từ đầu đến cuối. Mỗi cảnh/shot phải có timecode bắt đầu-kết thúc, thời lượng, loại shot (wide/medium/close-up/insert), góc máy, chuyển động camera, bố cục, chủ thể, hành động, bối cảnh, đạo cụ, ánh sáng, màu sắc, độ sâu trường ảnh và chuyển cảnh.\n3. Phân tích chuyển động nhân vật theo từng nhịp: tư thế đầu, hành động, hướng di chuyển, tốc độ, tương tác với môi trường, trạng thái cuối. Phân biệt điều quan sát được với suy luận.\n4. Phân tích âm thanh: nhạc, lời thoại, voice-over, ambience, SFX và điểm đồng bộ với hình ảnh. Nếu không nghe được, ghi không xác định.\n5. Phân tích ngôn ngữ dựng: cut, dissolve, match cut, speed ramp, nhịp cắt và continuity.\n6. Tạo storyboard tái dựng theo từng cảnh, sau đó tạo prompt hình ảnh và prompt image-to-video riêng cho mỗi cảnh. Prompt phải mô tả chủ thể, bối cảnh, hành động, camera, ánh sáng, màu, chuyển động, thời lượng, tỷ lệ khung hình và negative constraints.\n7. Tạo prompt tổng thể để giữ style consistency giữa các cảnh; lập character bible và environment bible nếu có nhân vật/bối cảnh lặp lại.\n8. Đưa ra bảng những yếu tố cần giữ nguyên và những yếu tố có thể thay đổi khi remake. Không tự nhận diện người thật; chỉ mô tả đặc điểm nhìn thấy.\n\nĐỊNH DẠNG ĐẦU RA:\nA. Executive breakdown.\nB. Timeline dạng bảng: # | timecode | duration | visual/action | shot/angle | camera movement | lighting/color | audio/edit.\nC. Character & environment bible.\nD. Storyboard chi tiết từng cảnh.\nE. Prompt hình ảnh VI + EN cho từng cảnh.\nF. Prompt video VI + EN cho từng cảnh.\nG. Master style prompt + negative prompt.\nH. Những điểm chưa chắc chắn / cần người dùng xác nhận.\n\nQUY TẮC CHẤT LƯỢNG: Chính xác theo nguồn; không tự thêm cảnh, lời thoại, chuyển động hay chi tiết không thấy/nghe được. Nếu video dài, phân tích theo từng đoạn và báo rõ phần nào đã xử lý.`;lastReversePrompt=prompt;$('reversePrompt').value=prompt;$('reversePromptPanel').hidden=false;$('reversePromptPanel').scrollIntoView({behavior:'smooth',block:'start'});return prompt}
-$('makeReversePromptBtn').onclick=buildReversePrompt;
-$('copyReversePromptBtn').onclick=()=>copy(lastReversePrompt||$('reversePrompt').value);
-$('downloadReversePromptBtn').onclick=()=>download('YUKI_VIDEO_REVERSE_ENGINEERING_MASTER_PROMPT.txt',$('reversePrompt').value,'text/plain;charset=utf-8');
-$('exportReverseRequestBtn').onclick=()=>{let source=currentReverseSource();if(!source){toast('Chưa có nguồn video');return}let request={product:'YUKI CINE STUDIO',module:'VIDEO_REVERSE_ENGINEERING',createdAt:new Date().toISOString(),source:{...source,url:$('reverseUrl').value.trim(),platform:$('reverseSource').value},settings:{granularity:$('reverseGranularity').value,language:$('reverseLanguage').value,focus:$('reverseFocus').value,rightsConfirmed:$('reverseRights').checked},masterPrompt:$('reversePrompt').value,scenes:reverseScenes,backendStatus:'not_connected'};download('yuki-video-analysis-request.json',JSON.stringify(request,null,2),'application/json')};
-function renderReverseScenes(){let box=$('reverseSceneList');if(!reverseScenes.length){box.innerHTML='<div class="empty">Chưa có cảnh nào được bóc tách.</div>';return}box.innerHTML=reverseScenes.map((s,i)=>`<div class="reverse-scene" data-rscene="${s.id}"><div class="scenehead"><b>CẢNH ${String(i+1).padStart(2,'0')}</b><button class="textbtn" data-rremove="${s.id}">Xóa</button></div><div class="two"><label>Timecode<input data-rfield="time" placeholder="00:00–00:05" value="${esc(s.time)}"></label><label>Thời lượng (giây)<input data-rfield="duration" type="number" min="1" value="${esc(s.duration)}"></label></div><label>Hình ảnh / hành động<textarea data-rfield="visual" rows="3" placeholder="Mô tả những gì thực sự nhìn thấy…">${esc(s.visual)}</textarea></label><div class="two"><label>Góc máy<input data-rfield="angle" placeholder="Close-up / Wide…" value="${esc(s.angle)}"></label><label>Camera movement<input data-rfield="camera" placeholder="Dolly-in / Tracking…" value="${esc(s.camera)}"></label></div><label>Chuyển động nhân vật<textarea data-rfield="motion" rows="2" placeholder="Tư thế, hướng, nhịp, hành động…">${esc(s.motion)}</textarea></label><label>Ánh sáng / màu / âm thanh<textarea data-rfield="lookAudio" rows="2" placeholder="Ánh sáng, palette, nhạc, SFX…">${esc(s.lookAudio)}</textarea></label><label>Prompt tái tạo cảnh<textarea data-rfield="prompt" rows="3" placeholder="Prompt hình ảnh/video cho cảnh này…">${esc(s.prompt)}</textarea></label></div>`).join('');box.querySelectorAll('[data-rfield]').forEach(el=>el.onchange=()=>{let card=el.closest('[data-rscene]'),s=reverseScenes.find(x=>x.id===card.dataset.rscene);s[el.dataset.rfield]=el.value});box.querySelectorAll('[data-rremove]').forEach(btn=>btn.onclick=()=>{reverseScenes=reverseScenes.filter(s=>s.id!==btn.dataset.rremove);renderReverseScenes()})}
-$('addReverseSceneBtn').onclick=()=>{reverseScenes.push({id:crypto.randomUUID(),time:'',duration:5,visual:'',angle:'',camera:'',motion:'',lookAudio:'',prompt:''});renderReverseScenes()};
-$('saveReverseAnalysisBtn').onclick=()=>{let source=currentReverseSource();if(!source){toast('Hãy thêm nguồn video trước');return}let jobs=JSON.parse(localStorage.getItem(REVERSE_KEY)||'[]');jobs.unshift({id:crypto.randomUUID(),createdAt:new Date().toISOString(),source:{...source,url:$('reverseUrl').value.trim(),platform:$('reverseSource').value},settings:{granularity:$('reverseGranularity').value,language:$('reverseLanguage').value,focus:$('reverseFocus').value},prompt:$('reversePrompt').value,scenes:reverseScenes});localStorage.setItem(REVERSE_KEY,JSON.stringify(jobs));renderReverseSaved();
-
-// V5 REAL VIDEO ANALYSIS CLIENT. Requires the separately deployed Node backend.
-const V5_API = (localStorage.getItem('yuki_v5_api_url') || '').replace(/\/$/,'');
-async function v5Check(){const el=$('v5EngineStatus');if(!el)return;if(!V5_API){el.textContent='Backend chưa cấu hình. Nhập URL backend trong Cài đặt máy chủ ở phần hướng dẫn V5.';return}try{const r=await fetch(V5_API+'/api/health');const j=await r.json();el.textContent=j.aiReady?`Backend sẵn sàng · ${j.provider} · ${j.model}`:'Backend hoạt động nhưng chưa có API key AI.'}catch(e){el.textContent='Không kết nối được backend V5.'}}
-if($('v5EngineStatus'))v5Check();
-if($('runVideoAnalysisBtn'))$('runVideoAnalysisBtn').onclick=async()=>{
- const file=$('reverseFile')?.files?.[0],url=$('reverseUrl')?.value?.trim();
- if(!file&&!url){toast('Hãy tải video hoặc dán link trước');return}
- if(!$('reverseRights').checked){toast('Vui lòng xác nhận quyền sử dụng video');return}
- if(!V5_API){const api=prompt('Nhập URL HTTPS của YUKI V5 Backend (ví dụ https://api.tenmiencuaban.com):');if(!api)return;localStorage.setItem('yuki_v5_api_url',api.trim());location.reload();return}
- const btn=$('runVideoAnalysisBtn'),progress=$('v5Progress');btn.disabled=true;btn.textContent='ĐANG PHÂN TÍCH…';progress.textContent='Đang tải video, trích xuất frame và gửi đến AI. Vui lòng giữ trang mở.';
- try{const fd=new FormData();if(file)fd.append('video',file);else fd.append('url',url);fd.append('provider',$('v5Provider').value);fd.append('granularity',$('reverseGranularity').value);fd.append('language',$('reverseLanguage').value);fd.append('focus',$('reverseFocus').value);
- const resp=await fetch(V5_API+'/api/analyze-video',{method:'POST',body:fd});const data=await resp.json();if(!resp.ok)throw new Error(data.error||'Phân tích thất bại');
- const a=data.analysis||{};reverseScenes=(a.scenes||[]).map((x,i)=>({id:crypto.randomUUID(),time:x.timecode||'',duration:x.duration_seconds||5,visual:x.visual_description||x.action||'',angle:x.shot_type||x.camera_angle||'',camera:x.camera_movement||'',motion:x.subject_motion||'',lookAudio:[x.lighting,x.color_palette,x.audio].filter(Boolean).join(' · '),prompt:x.video_prompt_vi||x.video_prompt_en||''}));renderReverseScenes();
- const report=[`YUKI CINE STUDIO V5 · VIDEO ANALYSIS`,`Provider: ${data.provider||'AI'} · Model: ${data.model||''}`,`Duration: ${a.video_summary?.duration||'N/A'}`,`\nTÓM TẮT\n${a.video_summary?.summary||''}`,`\nNHÂN VẬT & BỐI CẢNH\n${JSON.stringify(a.character_bible||[],null,2)}`,`\nMASTER STYLE PROMPT\n${a.master_style_prompt||''}`,`\nNEGATIVE PROMPT\n${a.negative_prompt||''}`,`\nCHI TIẾT CẢNH\n${(a.scenes||[]).map((x,i)=>`CẢNH ${i+1} · ${x.timecode||''}\n${x.visual_description||''}\nIMAGE PROMPT VI: ${x.image_prompt_vi||''}\nIMAGE PROMPT EN: ${x.image_prompt_en||''}\nVIDEO PROMPT VI: ${x.video_prompt_vi||''}\nVIDEO PROMPT EN: ${x.video_prompt_en||''}`).join('\n\n')}`,`\nUNCERTAINTIES\n${(a.uncertainties||[]).join('\n')}`].join('\n');
- $('reversePrompt').value=report;$('reversePromptPanel').hidden=false;$('v5Results').hidden=false;$('v5Results').innerHTML=`<div class="note"><b>Phân tích hoàn tất</b><br>${reverseScenes.length} cảnh · ${esc(data.provider||'AI')} · ${esc(data.model||'')}<br><button class="secondary full" id="v5DownloadReport">Tải báo cáo phân tích TXT</button><button class="secondary full" id="v5DownloadJSON">Tải kết quả JSON</button></div>`;
- $('v5DownloadReport').onclick=()=>download('YUKI-V5-VIDEO-ANALYSIS.txt',report,'text/plain;charset=utf-8');$('v5DownloadJSON').onclick=()=>download('YUKI-V5-VIDEO-ANALYSIS.json',JSON.stringify(data,null,2),'application/json');progress.textContent='Hoàn tất. Hãy kiểm tra từng cảnh và chỉnh sửa nếu cần.';toast('AI đã phân tích video và tạo prompt theo cảnh');
- }catch(e){progress.textContent='Lỗi: '+e.message;toast('Chưa phân tích được video')}finally{btn.disabled=false;btn.textContent='✦ PHÂN TÍCH VIDEO THẬT & XUẤT PROMPT'}
-};
-toast('Đã lưu phiếu phân tích trên thiết bị')};
-function renderReverseSaved(){let jobs=JSON.parse(localStorage.getItem(REVERSE_KEY)||'[]');$('reverseSavedList').innerHTML=jobs.length?'<p class="tiny muted">PHIẾU ĐÃ LƯU TRÊN THIẾT BỊ</p>'+jobs.slice(0,5).map(j=>`<div class="reverse-saved"><span><b>${esc(j.source.type)}</b><br><small>${new Date(j.createdAt).toLocaleString('vi-VN')} · ${j.scenes.length} cảnh</small></span><button class="textbtn" data-rjob="${j.id}">Xuất JSON</button></div>`).join(''):'';document.querySelectorAll('[data-rjob]').forEach(b=>b.onclick=()=>{let j=jobs.find(x=>x.id===b.dataset.rjob);download('yuki-analysis-'+j.id+'.json',JSON.stringify(j,null,2),'application/json')})}
-renderReverseSaved();
-
-
-// V4 · YUKI AUDIO STUDIO (request builder + local previews; media processing requires backend)
-let audioVideoObjectUrl=null,mixVideoObjectUrl=null,audioJob={video:null,tracks:[]};
-function fileMeta(f){return f?{name:f.name,type:f.type||'application/octet-stream',size:f.size,lastModified:f.lastModified}:null}
-function showLocalVideo(file,boxId,infoId,which){const box=$(boxId),info=$(infoId);let old=which==='extract'?audioVideoObjectUrl:mixVideoObjectUrl;if(old)URL.revokeObjectURL(old);if(!file){info.textContent='Chưa chọn video.';box.innerHTML='<div class="empty">Video xem trước sẽ xuất hiện tại đây.</div>';return}let url=URL.createObjectURL(file);if(which==='extract')audioVideoObjectUrl=url;else mixVideoObjectUrl=url;info.textContent=`${file.name} · ${(file.size/1024/1024).toFixed(1)} MB`;box.innerHTML=`<video controls playsinline preload="metadata" src="${url}"></video>`}
-if($('audioVideoInput'))$('audioVideoInput').onchange=e=>{let f=e.target.files[0]||null;audioJob.video=fileMeta(f);showLocalVideo(f,'audioVideoPreview','audioVideoInfo','extract')};
-if($('mixVideoInput'))$('mixVideoInput').onchange=e=>{let f=e.target.files[0]||null;audioJob.mixVideo=fileMeta(f);showLocalVideo(f,'mixVideoPreview','mixVideoInfo','mix')};
-if($('mixAudioInput'))$('mixAudioInput').onchange=e=>{audioJob.tracks=[...e.target.files].map(fileMeta);$('mixAudioList').innerHTML=audioJob.tracks.length?audioJob.tracks.map((f,i)=>`<div class="asset"><span>♫ ${esc(f.name)}<br><small>${esc(f.type)} · ${(f.size/1024/1024).toFixed(1)} MB</small></span><span>Track ${i+1}</span></div>`).join(''):'<div class="empty">Chưa có track âm thanh.</div>'};
-function audioPrompt(kind){const v=audioJob.video,m=audioJob.mixVideo,tracks=audioJob.tracks||[];if(kind==='extract'&&!v){toast('Hãy chọn video trước');return ''}if(kind==='mix'&&!m){toast('Hãy chọn video nền trước');return ''}let prompt=kind==='extract'?`YUKI AUDIO POST-PRODUCTION REQUEST\nTASK: Extract/process audio from the supplied source video.\nSOURCE: ${v.name} (${v.type}, ${v.size} bytes).\nOUTPUT: ${$('audioFormat').value}; ${$('audioQuality').value}.\nMODE: ${$('audioExtractMode').value}.\nTIMECODE: ${$('audioTimecode').value||'Full duration'}.\nREQUIREMENTS: Preserve sync and original timing; do not invent or replace source audio. If source contains dialogue, music and ambience, identify them separately where source separation is technically supported. Report codec, sample rate, duration and any processing limitations.\nNOTE: This is a processing brief; backend FFmpeg/AI execution is not connected in this PWA.`:`YUKI AUDIO MIX REQUEST\nBASE VIDEO: ${m.name} (${m.type}, ${m.size} bytes).\nAUDIO TRACKS: ${tracks.map((t,i)=>`${i+1}. ${t.name} (${t.type}, ${t.size} bytes)`).join('\n')||'No audio tracks attached'}.\nMUSIC LEVEL: ${$('musicVolume').value}.\nVOICE-OVER LEVEL: ${$('voiceVolume').value}.\nAUDIO DUCKING: ${$('audioDucking').checked?'Enabled':'Disabled'}.\nFADE IN/OUT: ${$('audioFade').checked?'Enabled':'Disabled'}.\nSYNC NOTES: ${$('audioSyncNotes').value||'No additional notes'}.\nREQUIREMENTS: Align dialogue and sound effects to the visual timecode; prevent clipping; preserve intelligibility; apply smooth transitions; mix music under dialogue; export a synchronized final video and provide an audio mix report.\nNOTE: This is a processing brief; backend FFmpeg/AI execution is not connected in this PWA.`;$('audioMasterPrompt').value=prompt;return prompt}
-if($('makeExtractRequest'))$('makeExtractRequest').onclick=()=>{let t=audioPrompt('extract');if(t)toast('Phiếu tách âm thanh đã được tạo')};
-if($('makeMixRequest'))$('makeMixRequest').onclick=()=>{let t=audioPrompt('mix');if(t)toast('Phiếu phối âm đã được tạo')};
-if($('copyAudioPrompt'))$('copyAudioPrompt').onclick=()=>{let t=$('audioMasterPrompt').value;if(t)copy(t);else toast('Hãy tạo phiếu xử lý trước')};
-if($('downloadAudioPrompt'))$('downloadAudioPrompt').onclick=()=>{let t=$('audioMasterPrompt').value;if(t)download('yuki-audio-post-production.txt',t,'text/plain;charset=utf-8');else toast('Hãy tạo phiếu xử lý trước')};
-if($('downloadAudioJob'))$('downloadAudioJob').onclick=()=>{let t=$('audioMasterPrompt').value;if(!t){toast('Hãy tạo phiếu xử lý trước');return}download('yuki-audio-job.json',JSON.stringify({product:'YUKI CINE STUDIO',module:'AUDIO_STUDIO',createdAt:new Date().toISOString(),sourceVideo:audioJob.video,mixVideo:audioJob.mixVideo,tracks:audioJob.tracks,settings:{format:$('audioFormat').value,quality:$('audioQuality').value,extractMode:$('audioExtractMode').value,timecode:$('audioTimecode').value,musicVolume:$('musicVolume').value,voiceVolume:$('voiceVolume').value,ducking:$('audioDucking').checked,fade:$('audioFade').checked,syncNotes:$('audioSyncNotes').value},prompt:t,backendStatus:'not_connected'},null,2),'application/json')};
+async function checkAnalysisServer() {
+  const base = (localStorage.getItem(ANALYSIS_API_KEY) || '').replace(/\/+$/, '');
+  const el = $('analysisConnectionState');
+  if (!base) { el.textContent = 'Chưa nhập URL Cloud Run.'; return; }
+  el.textContent = 'Đang kiểm tra máy chủ…';
+  try {
+    const r = await fetch(base + '/health');
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error(j.error || 'Health check failed');
+    el.textContent = `Đã kết nối máy chủ · ${j.service || 'YUKI CINE API'} · model ${j.model || 'Gemini'}`;
+  } catch (e) {
+    el.textContent = 'Chưa kết nối được: ' + e.message;
+  }
+}
+async function runRealVideoAnalysis() {
+  const base = (localStorage.getItem(ANALYSIS_API_KEY) || '').replace(/\/+$/, '');
+  const file = $('sourceVideoFile').files[0];
+  const url = $('sourceVideoUrl').value.trim();
+  const progress = $('analysisProgress');
+  if (!base) { toast('Hãy lưu URL Cloud Run trước'); return; }
+  if (!file && !url) { toast('Chọn video hoặc dán link YouTube'); return; }
+  if (file && url) { toast('Chọn một nguồn: video tải lên hoặc link'); return; }
+  if (!$('rightsConfirm').checked) { toast('Vui lòng xác nhận quyền sử dụng video'); return; }
+  if (file && file.size > 25 * 1024 * 1024) { toast('Video vượt giới hạn 25 MB của bản này'); return; }
+  if (url && !/(youtube\.com\/|youtu\.be\/)/i.test(url)) {
+    toast('Bản hiện tại nhận link YouTube công khai; nguồn khác hãy tải video lên');
+    return;
+  }
+  const btn = $('runVideoAnalysis');
+  btn.disabled = true;
+  $('analysisResults').hidden = true;
+  progress.textContent = 'Đang gửi video đến Cloud Run…';
+  try {
+    let response;
+    if (file) {
+      const fd = new FormData();
+      fd.append('video', file);
+      fd.append('depth', $('analysisDepth').value);
+      fd.append('language', $('analysisLanguage').value);
+      fd.append('extra', $('analysisExtra').value);
+      response = await fetch(base + '/api/analyze-video', {method:'POST', body:fd});
+    } else {
+      response = await fetch(base + '/api/analyze-youtube', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({url, depth:$('analysisDepth').value, language:$('analysisLanguage').value, extra:$('analysisExtra').value})
+      });
+    }
+    const data = await response.json().catch(()=>({error:'Máy chủ trả về dữ liệu không hợp lệ'}));
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+    latestVideoAnalysis = data.analysis || data;
+    renderVideoAnalysis(latestVideoAnalysis);
+    progress.textContent = 'Phân tích hoàn tất. Hãy kiểm tra từng cảnh và chỉnh prompt nếu cần.';
+    $('analysisResults').hidden = false;
+    $('analysisResults').scrollIntoView({behavior:'smooth', block:'start'});
+  } catch (e) {
+    progress.textContent = 'Phân tích thất bại: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+function renderVideoAnalysis(a) {
+  $('analysisSummary').innerHTML = `<p><b>${esc(a.title || 'Video gốc')}</b></p>
+    <p class="muted">${esc(a.overall_summary || '')}</p>
+    <p class="tiny muted">Phong cách: ${esc(a.visual_style || 'Chưa xác định')} · Âm thanh: ${esc(a.audio_summary || 'Chưa xác định')}</p>`;
+  $('analysisMasterPrompt').value = a.master_prompt || '';
+  $('analysisSceneList').innerHTML = (a.scenes || []).map((s,i)=>`
+    <article class="analysis-scene">
+      <h3>Cảnh ${i+1}: ${esc(s.title || s.action || 'Phân cảnh')}</h3>
+      <p class="analysis-time">${esc(s.start_time || '?')} → ${esc(s.end_time || '?')}</p>
+      <p><b>Hình ảnh:</b> ${esc(s.visual_description || '')}</p>
+      <p><b>Hành động:</b> ${esc(s.action || '')}</p>
+      <p><b>Máy quay:</b> ${esc(s.camera || '')} · <b>Góc máy:</b> ${esc(s.shot_type || '')}</p>
+      <p><b>Ánh sáng / màu:</b> ${esc(s.lighting_color || '')}</p>
+      <p><b>Chuyển cảnh:</b> ${esc(s.transition || '')}</p>
+      <label>Prompt VI<textarea readonly rows="5">${esc(s.prompt_vi || '')}</textarea></label>
+      <label>Prompt EN<textarea readonly rows="5">${esc(s.prompt_en || '')}</textarea></label>
+      <button class="secondary full" data-copy-scene="${i}">Sao chép prompt cảnh này</button>
+    </article>`).join('') || '<p class="muted">AI chưa trả về cảnh nào.</p>';
+  $('analysisSceneList').querySelectorAll('[data-copy-scene]').forEach(b => b.onclick = () => {
+    const s = (a.scenes || [])[Number(b.dataset.copyScene)];
+    copy(`VI:\n${s.prompt_vi || ''}\n\nEN:\n${s.prompt_en || ''}`);
+  });
+}

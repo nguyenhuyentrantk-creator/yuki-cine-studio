@@ -4,10 +4,16 @@
 /* V2 additions */
 #characterList .asset{align-items:flex-start}#characterList small{display:inline-block;color:var(--muted);margin-top:5px;line-height:1.5}.settingscard label{margin:12px 0}.settingscard .full{margin-top:8px}
 
-/* V3 · Video Reverse Engineering */
-.reverse-cta{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:16px;border:1px solid #62513b;background:linear-gradient(130deg,#25211c,#19191f);border-radius:15px;margin:18px 0}.reverse-cta b{font-size:14px}.reverse-cta .muted{margin:7px 0 0}.reverse-cta .primary{white-space:nowrap;padding:11px 12px;font-size:11px}.video-preview{margin-top:14px;min-height:100px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#09090c;display:grid;place-items:center}.video-preview iframe,.video-preview video{display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}.video-preview .empty{margin:12px;border:0}.checkline{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--muted)}.checkline input{width:18px;height:18px;margin:0;accent-color:var(--gold);flex:0 0 auto}.reverse-scene{padding:13px;margin:10px 0;border:1px solid var(--line);background:var(--panel);border-radius:12px}.reverse-scene .scenehead{margin-bottom:8px}.reverse-scene label{margin:10px 0}.reverse-scene textarea{min-height:70px}.reverse-scene .two{gap:8px}.reverse-scene .textbtn{float:right}.wait{color:var(--gold)}#reversePrompt{min-height:230px;font-size:11px}.reverse-saved{padding:11px;background:var(--panel);border-radius:10px;font-size:11px;margin-top:8px;display:flex;justify-content:space-between;gap:10px;align-items:center}@media(max-width:430px){.reverse-cta{align-items:flex-start;flex-direction:column}.reverse-cta .primary{width:100%}.bottomnav .navitem{min-width:0;font-size:9px}.bottomnav{padding-left:7px;padding-right:7px}}
 
-/* V4 · Audio Studio */
-.audio-cta{border-color:#66553a;background:linear-gradient(130deg,#211e24,#19191f 65%,#30271d)}
-#audio .settingscard{margin:16px 0}#audio .settingscard>b{font-size:15px}#audio .upload{margin-top:14px}#audio .asset{align-items:center;gap:12px}#audio .asset small{color:var(--muted)}#audio .video-preview video{width:100%;display:block;aspect-ratio:16/9;background:#000}#audio .checkline{margin:14px 0}
-@media(max-width:430px){.bottomnav .navitem{min-width:0;flex:1;font-size:8px}.bottomnav .navitem span{font-size:17px}}
+/* V5 video analysis */
+.checkline{display:flex!important;align-items:flex-start;gap:10px;font-size:14px;color:var(--muted)}
+.checkline input{width:20px;min-width:20px;height:20px;margin:2px 0 0;accent-color:#d8b879}
+#analysisResults{margin-top:18px}
+.analysis-scene{border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0;background:#17171d}
+.analysis-scene h3{margin:0 0 8px;font-size:16px}
+.analysis-scene p{margin:6px 0;color:var(--muted);line-height:1.5}
+.analysis-scene textarea{min-height:110px}
+.analysis-time{color:#d8b879!important;font-weight:700}
+#analysisProgress{padding:10px 0;line-height:1.5}
+#selectedVideoName{overflow-wrap:anywhere;padding:8px 0}
+#analysisConnectionState{overflow-wrap:anywhere}

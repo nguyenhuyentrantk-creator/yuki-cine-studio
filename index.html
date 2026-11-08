@@ -25,8 +25,6 @@
     <p class="muted">Không gian tiền kỳ điện ảnh trên iPhone. Lên ý tưởng, chia cảnh, tạo prompt và quản lý tài nguyên trong một nơi.</p>
     <button class="primary" id="newProjectBtn">＋ Tạo dự án mới</button>
   </div>
-  <div class="reverse-cta"><div><p class="eyebrow">NEW · VIDEO REVERSE ENGINEERING</p><b>Bóc tách video gốc thành kịch bản & prompt</b><p class="muted">Dán link YouTube, TikTok, Facebook, Xiaohongshu hoặc MP4 để bắt đầu.</p></div><button class="primary" data-go="reverse">Phân tích video →</button></div>
-  <div class="reverse-cta audio-cta"><div><p class="eyebrow">NEW · YUKI AUDIO STUDIO</p><b>Tách âm thanh · Thêm nhạc · Ghép voice-over</b><p class="muted">Chuẩn bị xử lý âm thanh và dựng yêu cầu hậu kỳ.</p></div><button class="primary" data-go="audio">Mở Audio Studio →</button></div>
   <div class="sectionhead"><div><p class="eyebrow">WORKSPACE</p><h2>Dự án của bạn</h2></div><span class="count" id="projectCount">0 dự án</span></div>
   <div id="projectList" class="projectlist"></div>
   <div class="note"><b>ⓘ Bản MVP</b><br>Hiện tại ứng dụng hỗ trợ tiền kỳ, storyboard và prompt. Tạo video AI và render MP4 cần kết nối dịch vụ máy chủ ở bước tiếp theo.</div>
@@ -95,102 +93,46 @@
   </div>
 </section>
 
-<section id="reverse" class="page">
-  <button class="back" data-go="home">← Trang chủ</button>
-  <p class="eyebrow">YUKI VIDEO REVERSE ENGINEERING</p>
-  <h1>Phân tích ngược<br><em style="font-family:Playfair Display,serif;color:var(--gold)">video gốc.</em></h1>
-  <p class="muted">Tiếp nhận link video, xem trước nguồn, tạo phiếu yêu cầu phân tích chuyên sâu và bóc tách storyboard theo từng cảnh.</p>
-  <div class="settingscard">
-    <label>Nguồn video
-      <select id="reverseSource"><option value="auto">Tự nhận diện nền tảng</option><option value="YouTube">YouTube</option><option value="TikTok">TikTok</option><option value="Facebook">Facebook</option><option value="Xiaohongshu">Xiaohongshu / RED (小红书)</option><option value="MP4">Link MP4 trực tiếp</option></select>
-    </label>
-    <label>Đường link video<input id="reverseUrl" type="url" placeholder="Dán link YouTube / TikTok / Facebook / Xiaohongshu / MP4…" autocomplete="url"></label>
-    <label class="upload">＋ Hoặc chọn video từ iPhone (MP4 / MOV)<input id="reverseFile" type="file" accept="video/*"></label>
-    <div id="reverseSourceStatus" class="tiny muted">Chưa có nguồn video.</div>
-    <div class="two"><button class="secondary" id="previewReverseBtn">Xem trước nguồn</button><button class="secondary" id="openReverseSourceBtn">Mở link gốc ↗</button></div>
-    <div id="reversePreview" class="video-preview"><div class="empty">Dán link hoặc chọn video để xem trước.</div></div>
-  </div>
-  <div class="settingscard">
-    <b>Thiết lập phân tích chuyên sâu</b>
-    <div class="two">
-      <label>Độ chi tiết cảnh<select id="reverseGranularity"><option value="3-5 giây">Rất chi tiết · mỗi 3–5 giây</option><option value="5-8 giây" selected>Chi tiết · mỗi 5–8 giây</option><option value="10-15 giây">Tổng quan · mỗi 10–15 giây</option><option value="theo thay đổi cảnh">Theo điểm cắt / thay đổi cảnh</option></select></label>
-      <label>Ngôn ngữ báo cáo<select id="reverseLanguage"><option>Tiếng Việt</option><option>Song ngữ Việt – Anh</option><option>Tiếng Anh</option></select></label>
-    </div>
-    <label>Ưu tiên phân tích<select id="reverseFocus"><option>Toàn diện: hình ảnh, hành động, camera, ánh sáng, âm thanh, dựng phim</option><option>Chuyển động nhân vật và motion replication</option><option>Ngôn ngữ máy quay và bố cục điện ảnh</option><option>Kịch bản, nhịp dựng và lời thoại</option><option>Phong cách hình ảnh, màu sắc và ánh sáng</option></select></label>
-    <label class="checkline"><input id="reverseRights" type="checkbox"> Tôi có quyền sử dụng video này hoặc được phép phân tích video.</label>
-    <div class="settingscard" style="margin-top:14px"><b>AI ENGINE · V5</b>
-      <p class="tiny muted">Chọn nhà cung cấp đã cấu hình trên máy chủ. API key không được lưu trong trình duyệt.</p>
-      <label>Nhà cung cấp AI<select id="v5Provider"><option value="auto">Tự chọn theo máy chủ</option><option value="gemini">Google Gemini</option><option value="openai">OpenAI</option><option value="openai-compatible">OpenAI-compatible</option></select></label>
-      <div id="v5EngineStatus" class="tiny muted">Đang kiểm tra kết nối AI…</div>
-      <button class="primary full" id="runVideoAnalysisBtn">✦ PHÂN TÍCH VIDEO THẬT & XUẤT PROMPT</button>
-      <div id="v5Progress" class="tiny muted" aria-live="polite"></div>
-      <div id="v5Results" hidden></div>
-    </div>
-    <button class="secondary full" id="makeReversePromptBtn">Tạo MASTER PROMPT thủ công</button>
-    <p class="tiny muted">Phân tích tự động cần triển khai V5 Backend và cấu hình API key trên máy chủ.</p>
-  </div>
-  <div class="settingscard" id="reversePromptPanel" hidden>
-    <div class="sectionhead"><b>MASTER PROMPT · VIDEO ANALYSIS</b><button class="textbtn" id="copyReversePromptBtn">Sao chép</button></div>
-    <textarea id="reversePrompt" rows="12" readonly></textarea>
-    <button class="secondary full" id="downloadReversePromptBtn">Tải prompt TXT</button>
-    <button class="secondary full" id="exportReverseRequestBtn">Xuất phiếu yêu cầu phân tích JSON</button>
-  </div>
-  <div class="settingscard">
-    <div class="sectionhead"><div><b>Scene Breakdown</b><p class="tiny muted">Ghi chú từng cảnh sau khi AI phân tích hoặc khi xem video thủ công.</p></div><button class="smallbtn" id="addReverseSceneBtn">＋ Thêm cảnh</button></div>
-    <div id="reverseSceneList"><div class="empty">Chưa có cảnh nào được bóc tách.</div></div>
-    <button class="secondary full" id="saveReverseAnalysisBtn">Lưu phiếu phân tích trên thiết bị</button>
-  </div>
-  <div class="note"><b>Trạng thái kết nối</b><br>Giao diện tiếp nhận link, xem trước video được hỗ trợ, tạo master prompt và xuất phiếu yêu cầu đã sẵn sàng. <span class="wait">AI phân tích tự động / trích xuất từng frame: chưa kết nối backend.</span><br><br>YouTube, TikTok và Facebook có thể chỉ cho phép nhúng/xem trước, không cấp quyền tải hoặc đọc toàn bộ video qua link. Nếu link bị chặn, hãy chọn tệp video mà bạn có quyền sử dụng. YouTube API cũng có giới hạn đối với việc sao chép/lưu trữ nội dung nghe nhìn.</div>
-  <div id="reverseSavedList" class="assetlist"></div>
-</section>
 
-<section id="audio" class="page">
-  <button class="back" data-go="home">← Trang chủ</button>
-  <p class="eyebrow">YUKI AUDIO STUDIO · MODULE 08</p>
-  <h1>Âm thanh<br><em style="font-family:Playfair Display,serif;color:var(--gold)">cho thước phim.</em></h1>
-  <p class="muted">Chuẩn bị tách âm thanh từ video hoặc thiết kế các lớp âm thanh mới cho video. Bản hiện tại tạo phiếu xử lý và xem trước tệp cục bộ; xuất âm thanh thực tế cần backend FFmpeg.</p>
+<section id="analysis" class="page">
+  <p class="eyebrow">VIDEO REVERSE ENGINEERING</p>
+  <h1>Phân tích video gốc</h1>
+  <p class="muted">Tải video lên hoặc dán link YouTube công khai. Gemini sẽ đọc nội dung video và trả về phân cảnh, mốc thời gian, mô tả hình ảnh, chuyển động máy quay và prompt tái tạo.</p>
   <div class="settingscard">
-    <b>01 · Tách âm thanh từ video</b>
-    <label class="upload">＋ Chọn video từ iPhone<input id="audioVideoInput" type="file" accept="video/*"></label>
-    <div id="audioVideoInfo" class="tiny muted">Chưa chọn video.</div>
+    <b>1. Kết nối máy chủ AI</b>
+    <label>Cloud Run API URL<input id="analysisApiUrl" type="url" placeholder="https://ten-dich-vu-xxxxx.run.app"></label>
+    <button class="secondary full" id="saveAnalysisApi">Lưu địa chỉ máy chủ</button>
+    <p class="tiny muted" id="analysisConnectionState">Chưa kiểm tra kết nối.</p>
+  </div>
+  <div class="settingscard">
+    <b>2. Chọn nguồn video</b>
+    <label>Link YouTube công khai<input id="sourceVideoUrl" type="url" placeholder="https://www.youtube.com/watch?v=..."></label>
+    <p class="tiny muted">Link TikTok/Facebook/Xiaohongshu không được tự động tải nếu nền tảng chặn truy cập. Với các nguồn này, hãy tải video về máy nếu bạn có quyền sử dụng rồi tải tệp bên dưới.</p>
+    <label class="upload">＋ Chọn video từ iPhone<input id="sourceVideoFile" type="file" accept="video/mp4,video/quicktime,video/webm,video/x-m4v"></label>
+    <div id="selectedVideoName" class="tiny muted">Chưa chọn tệp video.</div>
     <div class="two">
-      <label>Định dạng đầu ra<select id="audioFormat"><option>WAV</option><option>MP3</option><option>AAC</option><option>FLAC</option></select></label>
-      <label>Chất lượng<select id="audioQuality"><option>48 kHz · 24-bit</option><option>44.1 kHz · 16-bit</option><option>320 kbps MP3</option><option>192 kbps MP3</option></select></label>
+      <label>Mức phân tích<select id="analysisDepth"><option value="deep">Chuyên sâu từng cảnh</option><option value="standard">Tiêu chuẩn</option></select></label>
+      <label>Ngôn ngữ prompt<select id="analysisLanguage"><option value="both">Song ngữ VI + EN</option><option value="vi">Tiếng Việt</option><option value="en">English</option></select></label>
     </div>
-    <label>Kiểu xử lý<select id="audioExtractMode"><option>Trích xuất toàn bộ âm thanh</option><option>Tách giọng nói khỏi nhạc nền (AI)</option><option>Tách nhạc nền khỏi giọng nói (AI)</option><option>Giảm tiếng ồn / khử tạp âm</option><option>Trích xuất theo đoạn timecode</option></select></label>
-    <label>Timecode (nếu cần)<input id="audioTimecode" placeholder="Ví dụ: 00:00:12 – 00:00:35"></label>
-    <button class="primary full" id="makeExtractRequest">Tạo phiếu tách âm thanh</button>
-    <div id="audioVideoPreview" class="video-preview"><div class="empty">Video xem trước sẽ xuất hiện tại đây.</div></div>
+    <label>Yêu cầu bổ sung<textarea id="analysisExtra" rows="3" placeholder="Ví dụ: ưu tiên góc máy, ánh sáng, chuyển động, biểu cảm, bối cảnh..."></textarea></label>
+    <label class="checkline"><input id="rightsConfirm" type="checkbox"> Tôi có quyền sử dụng video này hoặc được phép phân tích video.</label>
+    <button class="primary full" id="runVideoAnalysis">✦ Phân tích video và xuất prompt gốc</button>
+    <p class="tiny muted">Giới hạn bản Cloud Run mẫu: video tải lên tối đa 25 MB. Video lớn hơn cần bổ sung Google Cloud Storage upload trực tiếp.</p>
+    <div id="analysisProgress" class="tiny muted" aria-live="polite"></div>
   </div>
-  <div class="settingscard">
-    <b>02 · Thêm âm thanh vào video</b>
-    <label class="upload">＋ Chọn video nền<input id="mixVideoInput" type="file" accept="video/*"></label>
-    <div id="mixVideoInfo" class="tiny muted">Chưa chọn video nền.</div>
-    <div id="mixVideoPreview" class="video-preview"><div class="empty">Video nền xem trước sẽ xuất hiện tại đây.</div></div>
-    <label class="upload">＋ Thêm nhạc / voice-over / hiệu ứng<input id="mixAudioInput" type="file" accept="audio/*" multiple></label>
-    <div id="mixAudioList" class="assetlist"><div class="empty">Chưa có track âm thanh.</div></div>
-    <div class="two">
-      <label>Âm lượng nhạc nền<select id="musicVolume"><option>15%</option><option>25%</option><option selected>35%</option><option>50%</option><option>70%</option><option>100%</option></select></label>
-      <label>Âm lượng voice-over<select id="voiceVolume"><option>60%</option><option>75%</option><option selected>90%</option><option>100%</option><option>110%</option></select></label>
-    </div>
-    <label class="checkline"><input id="audioDucking" type="checkbox" checked> Tự giảm nhạc nền khi có lời thoại (Audio Ducking)</label>
-    <label class="checkline"><input id="audioFade" type="checkbox" checked> Fade in / fade out ở đầu và cuối</label>
-    <label>Ghi chú đồng bộ<textarea id="audioSyncNotes" rows="3" placeholder="Ví dụ: tiếng bước chân khớp lúc nhân vật bước xuống bậc thềm ở 00:00:08…"></textarea></label>
-    <button class="primary full" id="makeMixRequest">Tạo phiếu phối âm</button>
+  <div id="analysisResults" class="settingscard" hidden>
+    <div class="sectionhead"><h2>Kết quả phân tích</h2><button class="smallbtn" id="exportAnalysisJson">Xuất JSON</button></div>
+    <div id="analysisSummary"></div>
+    <div id="analysisSceneList"></div>
+    <label>MASTER PROMPT – tái tạo toàn video<textarea id="analysisMasterPrompt" rows="9" readonly></textarea></label>
+    <div class="two"><button class="secondary" id="copyMasterPrompt">Sao chép MASTER</button><button class="secondary" id="copyAllScenePrompts">Sao chép prompt cảnh</button></div>
+    <div class="note">Kết quả là phân tích AI dựa trên những khung hình và tín hiệu mà mô hình đọc được, không phải bản sao tuyệt đối từng pixel. Hãy đối chiếu lại các chi tiết nhỏ trước khi sản xuất.</div>
   </div>
-  <div class="settingscard">
-    <b>03 · Prompt hậu kỳ âm thanh</b>
-    <p class="muted">Tạo chỉ dẫn cho kỹ thuật viên hoặc AI audio/video có khả năng xử lý media. Đây không phải thao tác render trực tiếp.</p>
-    <textarea id="audioMasterPrompt" rows="9" placeholder="Prompt hậu kỳ sẽ xuất hiện tại đây…" readonly></textarea>
-    <div class="two"><button class="secondary" id="copyAudioPrompt">Sao chép prompt</button><button class="secondary" id="downloadAudioPrompt">Tải prompt TXT</button></div>
-    <button class="secondary full" id="downloadAudioJob">Xuất phiếu xử lý JSON</button>
-  </div>
-  <div class="note"><b>Trạng thái kết nối</b><br>Giao diện chọn video/âm thanh, xem trước, thiết lập track và tạo phiếu xử lý đã sẵn sàng. <span class="wait">Tách vocal/stem bằng AI, khử nhiễu nâng cao, trộn track và xuất MP4/WAV/MP3 chưa hoạt động vì chưa kết nối backend FFmpeg và dịch vụ AI âm thanh.</span></div>
 </section>
 
 <section id="settings" class="page">
   <p class="eyebrow">STUDIO SETTINGS</p><h1>Cài đặt</h1>
-  <div class="settingscard"><b>Trạng thái hệ thống</b><p>Giao diện PWA: <span class="ok">Sẵn sàng</span><br>Quản lý dự án cục bộ: <span class="ok">Sẵn sàng</span><br>AI video API: <span class="wait">Chưa kết nối</span><br>Video Reverse Engineering: <span class="ok">Giao diện & prompt sẵn sàng</span><br>AI phân tích từng frame: <span class="wait">Chưa kết nối backend</span><br>CineCode render worker: <span class="wait">Chưa kết nối</span></p></div>
+  <div class="settingscard"><b>Trạng thái hệ thống</b><p>Giao diện PWA: <span class="ok">Sẵn sàng</span><br>Quản lý dự án cục bộ: <span class="ok">Sẵn sàng</span><br>AI video API: <span class="wait">Chưa kết nối</span><br>CineCode render worker: <span class="wait">Chưa kết nối</span></p></div>
   <div class="settingscard"><b>Kết nối trong tương lai</b><p>API key phải được lưu ở máy chủ, tuyệt đối không nhập khóa bí mật vào mã giao diện hoặc chia sẻ trong trình duyệt.</p><p class="muted">Nhà cung cấp có thể tích hợp sau: dịch vụ tạo video, lưu trữ media và máy chủ CineCode.</p></div>
   <div class="settingscard"><b>Dữ liệu</b><p>Dự án MVP được lưu trên trình duyệt hiện tại. Hãy xuất JSON để sao lưu trước khi xóa dữ liệu Safari.</p><button class="secondary full" id="backupBtn">Sao lưu toàn bộ dự án</button></div>
 </section>
@@ -198,8 +140,7 @@
 <nav class="bottomnav">
   <button class="navitem active" data-go="home"><span>⌂</span>Trang chủ</button>
   <button class="navitem" data-go="create"><span>＋</span>Tạo phim</button>
-  <button class="navitem" data-go="reverse"><span>⌕</span>Phân tích link</button>
-  <button class="navitem" data-go="audio"><span>♫</span>Âm thanh</button>
+  <button class="navitem" data-go="analysis"><span>⌕</span>Phân tích</button>
   <button class="navitem" data-go="settings"><span>⚙</span>Cài đặt</button>
 </nav>
 <div id="toast" class="toast"></div>
