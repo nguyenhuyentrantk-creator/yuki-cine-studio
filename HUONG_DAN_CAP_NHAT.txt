@@ -1,0 +1,27 @@
+YUKI CINE STUDIO V5 – CẬP NHẬT GIAO DIỆN GITHUB PAGES
+
+Backend Render đã triển khai tại:
+https://yuki-cine-studio.onrender.com
+
+Gói này chỉ chứa 3 tệp giao diện cần cập nhật:
+- index.html
+- app.js
+- sw.js
+
+CÁCH CẬP NHẬT TRÊN IPHONE
+1. Giải nén ZIP trong ứng dụng Tệp (Files).
+2. Mở GitHub repository: nguyenhuyentrank-creator/yuki-cine-studio
+3. Ở trang Code, chọn dấu ... cạnh nút Code/Mã số > Upload files/Tải lên tệp.
+4. Chọn đúng 3 tệp index.html, app.js, sw.js trong thư mục đã giải nén.
+5. GitHub sẽ báo các tệp cùng tên đã tồn tại; tải lên để THAY THẾ các tệp cũ.
+6. Kéo xuống cuối trang và nhấn Commit changes.
+7. Chờ GitHub Pages hoàn tất deploy.
+
+QUAN TRỌNG
+- Không tải ZIP nguyên gói lên GitHub.
+- Không xóa các tệp style.css, manifest.webmanifest, icon.svg.
+- Không thay đổi hoặc tải đè Dockerfile, server.js, package.json của backend.
+- app.js đã cài sẵn URL backend Render; không cần nhập API key vào giao diện.
+- Sau khi Pages cập nhật, mở trang Phân tích link. Mục AI ENGINE · V5 nằm bên trong trang đó.
+- Backend health check: https://yuki-cine-studio.onrender.com/api/health
+- Video upload hiện giới hạn 40 MB; link mạng xã hội thường không tải trực tiếp được, nên ưu tiên chọn MP4/MOV từ iPhone.
