@@ -1,15 +1,19 @@
 {
-  "name": "yuki-cine-v5-multi-free-backend",
-  "version": "5.1.0",
+  "name": "yuki-cine-studio",
+  "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "description": "YUKI CINE STUDIO PWA and Capacitor iOS starter",
   "scripts": {
-    "start": "node server.js"
+    "copy:web": "node scripts/copy-web.mjs",
+    "cap:add:ios": "npx cap add ios",
+    "cap:sync": "npm run copy:web && npx cap sync ios",
+    "cap:open:ios": "npx cap open ios"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.21.2",
-    "helmet": "^8.0.0",
-    "multer": "^2.0.2"
+    "@capacitor/core": "^7.4.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.0",
+    "@capacitor/ios": "^7.4.0"
   }
 }
