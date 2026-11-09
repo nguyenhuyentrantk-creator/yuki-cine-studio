@@ -33,3 +33,112 @@ $('saveCharacterBtn').onclick=()=>{let p=active(),name=$('charName').value.trim(
 $('appendMotionBtn').onclick=()=>{let pace=$('motionPace').value,type=$('motionType').value,tail=` Motion direction: ${pace}; ${type}. Keep movement physically plausible, smooth and temporally consistent; avoid abrupt morphing, identity drift, extra limbs, jitter and unintended cuts.`;$('promptVi').value += ` Chỉ dẫn chuyển động: ${pace}; ${type}. Chuyển động tự nhiên, liên tục, không méo hình hoặc thay đổi nhận diện nhân vật.`;$('promptEn').value += tail;let s=active().scenes.find(x=>x.id===$('promptScene').value);if(s){s.vi=$('promptVi').value;s.en=$('promptEn').value;save()}toast('Đã thêm chỉ dẫn chuyển động')};
 
 renderHome();
+
+// ===== YUKI CINE STUDIO: VIDEO REVERSE ENGINEERING (Render Multi-Zero API) =====
+const ANALYSIS_API_KEY = 'yuki_cine_render_api_url_v1';
+const DEFAULT_ANALYSIS_API = 'https://yuki-cine-studio.onrender.com';
+let latestVideoAnalysis = null;
+const apiUrlInput = $('analysisApiUrl');
+if (apiUrlInput) {
+  apiUrlInput.value = localStorage.getItem(ANALYSIS_API_KEY) || DEFAULT_ANALYSIS_API;
+  $('saveAnalysisApi').onclick = async () => {
+    const value = apiUrlInput.value.trim().replace(/\/+$/, '');
+    if (!/^https:\/\/.+/i.test(value)) { toast('Nhập URL HTTPS hợp lệ'); return; }
+    localStorage.setItem(ANALYSIS_API_KEY, value);
+    await checkAnalysisServer();
+  };
+  $('sourceVideoFile').onchange = e => {
+    const f=e.target.files[0];
+    $('selectedVideoName').textContent=f?`${f.name} · ${(f.size/1024/1024).toFixed(1)} MB`:'Chưa chọn video.';
+  };
+  $('runVideoAnalysis').onclick = runRealVideoAnalysis;
+  $('copyMasterPrompt').onclick = () => copy($('analysisMasterPrompt').value);
+  $('copyAllScenePrompts').onclick = () => {
+    if (!latestVideoAnalysis) return;
+    const a=latestVideoAnalysis;
+    copy((a.scenes||[]).map((s,i)=>`CẢNH ${i+1} | ${s.timecode||''}\nPROMPT VI:\n${s.video_prompt_vi||s.image_prompt_vi||''}\n\nPROMPT EN:\n${s.video_prompt_en||s.image_prompt_en||''}`).join('\n\n--------------------\n\n'));
+  };
+  $('exportAnalysisJson').onclick = () => {
+    if (latestVideoAnalysis) download('yuki-cine-video-analysis.json',JSON.stringify(latestVideoAnalysis,null,2),'application/json');
+  };
+  checkAnalysisServer();
+}
+function getAnalysisBase(){return (localStorage.getItem(ANALYSIS_API_KEY)||DEFAULT_ANALYSIS_API).replace(/\/+$/,'');}
+async function checkAnalysisServer(){
+  const el=$('analysisConnectionState'); if(!el)return;
+  const base=getAnalysisBase(); el.textContent='Đang kiểm tra máy chủ Render…';
+  const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),60000);
+  try{
+    const r=await fetch(base+'/api/health',{signal:controller.signal,cache:'no-store'});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.ok)throw new Error(j.error||`HTTP ${r.status}`);
+    el.textContent=`Đã kết nối · ${j.service||'YUKI CINE API'} · Vision: ${j.primary||'chưa rõ'} · ${j.aiReady?'AI đã cấu hình':'chưa có khóa AI'}`;
+    el.className='tiny '+(j.aiReady?'ok':'wait');
+  }catch(e){
+    el.textContent=e.name==='AbortError'?'Máy chủ phản hồi quá lâu (có thể đang khởi động). Hãy thử kiểm tra lại.':'Không kết nối được: '+e.message;
+    el.className='tiny wait';
+  }finally{clearTimeout(timer);}
+}
+async function runRealVideoAnalysis(){
+  const file=$('sourceVideoFile').files[0],progress=$('analysisProgress'),btn=$('runVideoAnalysis');
+  if(!file){toast('Hãy chọn video từ iPhone trước');return;}
+  if(!$('rightsConfirm').checked){toast('Vui lòng xác nhận quyền sử dụng video');return;}
+  if(file.size>40*1024*1024){toast('Video vượt giới hạn 40 MB của máy chủ');return;}
+  if(!/^video\//.test(file.type)){toast('Tệp đã chọn không phải video');return;}
+  btn.disabled=true; $('analysisResults').hidden=true;
+  progress.textContent='Đang tải video lên máy chủ… Lần đầu có thể cần chờ máy chủ Render khởi động.';
+  const fd=new FormData(); fd.append('video',file);
+  fd.append('granularity',$('analysisDepth').value);
+  fd.append('language',$('analysisLanguage').value);
+  fd.append('focus',$('analysisFocus').value);
+  fd.append('extra',$('analysisExtra').value);
+  fd.append('provider','auto');
+  const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),8*60*1000);
+  try{
+    progress.textContent='Đang phân tích hình ảnh và âm thanh. Vui lòng giữ trang mở…';
+    const r=await fetch(getAnalysisBase()+'/api/analyze-video',{method:'POST',body:fd,signal:controller.signal});
+    const data=await r.json().catch(()=>({error:'Máy chủ trả về dữ liệu không hợp lệ'}));
+    if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
+    if(!data.analysis)throw new Error('Máy chủ chưa trả về nội dung phân tích.');
+    latestVideoAnalysis=data.analysis;
+    renderVideoAnalysis(data);
+    progress.textContent=`Hoàn tất · ${data.video?.framesAnalyzed||'?'} khung hình · ${data.provider||'AI'} · ${data.audio?.transcribed?'đã phiên âm âm thanh':'chưa có bản phiên âm'}`;
+    $('analysisResults').hidden=false;
+    $('analysisResults').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    progress.textContent=e.name==='AbortError'?'Quá thời gian chờ. Hãy thử video ngắn hơn hoặc giảm mức phân tích.':'Phân tích thất bại: '+e.message;
+  }finally{clearTimeout(timer);btn.disabled=false;}
+}
+function renderVideoAnalysis(payload){
+  const a=payload.analysis||{};
+  const summary=a.video_summary||{};
+  $('analysisSummary').innerHTML=`<p><b>${esc(summary.genre||'Video gốc')} · ${esc(summary.mood||'')}</b></p><p class="muted">${esc(summary.summary||'')}</p><p class="tiny muted">Thời lượng: ${esc(summary.duration||payload.video?.duration_seconds||'Chưa rõ')} · Model: ${esc(payload.model||'')}</p><p class="tiny muted">Âm thanh: ${esc(a.audio_transcript||payload.audio?.note||'Không có bản phiên âm')}</p>`;
+  $('analysisMasterPrompt').value=a.master_style_prompt||'';
+  $('analysisNegativePrompt').value=a.negative_prompt||'';
+  const chars=(a.character_bible||[]).map(c=>`<p><b>${esc(c.name||'Nhân vật')}:</b> ${esc(c.visual_description||'')} <br><span class="muted">Trang phục:</span> ${esc(c.wardrobe||'')} <br><span class="muted">Liên tục:</span> ${esc(c.continuity_notes||'')}</p>`).join('');
+  const envs=(a.environment_bible||[]).map(e=>`<p><b>${esc(e.name||'Bối cảnh')}:</b> ${esc(e.description||'')} <br><span class="muted">Ánh sáng:</span> ${esc(e.lighting||'')} · <span class="muted">Màu:</span> ${esc(e.palette||'')}</p>`).join('');
+  $('analysisBibles').innerHTML=(chars||envs)?`<div class="analysis-bible"><h3>Nhân vật & tính liên tục</h3>${chars||'<p class="muted">Không nhận diện rõ nhân vật.</p>'}<h3>Bối cảnh</h3>${envs||'<p class="muted">Không có dữ liệu bối cảnh.</p>'}</div>`:'';
+  $('analysisSceneList').innerHTML=(a.scenes||[]).map((s,i)=>`
+    <article class="analysis-scene">
+      <h3>Cảnh ${i+1} · ${esc(s.timecode||'Chưa rõ thời gian')}</h3>
+      <p><b>Hình ảnh:</b> ${esc(s.visual_description||'')}</p>
+      <p><b>Hành động:</b> ${esc(s.action||'')}</p>
+      <p><b>Khung hình / góc máy:</b> ${esc(s.shot_type||'')} · ${esc(s.camera_angle||'')}</p>
+      <p><b>Camera:</b> ${esc(s.camera_movement||'')} · <b>Chuyển động chủ thể:</b> ${esc(s.subject_motion||'')}</p>
+      <p><b>Ánh sáng / màu:</b> ${esc(s.lighting||'')} · ${esc(s.color_palette||'')}</p>
+      <p><b>Âm thanh:</b> ${esc(s.audio||'')} · <b>Dựng:</b> ${esc(s.edit_transition||'')}</p>
+      <label>Prompt tái tạo VI<textarea readonly rows="5">${esc(s.video_prompt_vi||s.image_prompt_vi||'')}</textarea></label>
+      <label>Reconstruction prompt EN<textarea readonly rows="5">${esc(s.video_prompt_en||s.image_prompt_en||'')}</textarea></label>
+      <button class="secondary full" data-copy-scene="${i}">Sao chép prompt cảnh này</button>
+    </article>`).join('')||'<p class="muted">AI chưa trả về danh sách phân cảnh.</p>';
+  $('analysisSceneList').querySelectorAll('[data-copy-scene]').forEach(b=>b.onclick=()=>{
+    const s=(a.scenes||[])[Number(b.dataset.copyScene)];
+    copy(`PROMPT VI:\n${s.video_prompt_vi||s.image_prompt_vi||''}\n\nPROMPT EN:\n${s.video_prompt_en||s.image_prompt_en||''}`);
+  });
+  if(a.uncertainties?.length){
+    $('analysisBibles').insertAdjacentHTML('beforeend',`<div class="note"><b>Điểm AI chưa chắc chắn</b><ul>${a.uncertainties.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`);
+  }
+  if(payload.limitations?.length){
+    $('analysisBibles').insertAdjacentHTML('beforeend',`<p class="tiny muted">${payload.limitations.map(esc).join(' · ')}</p>`);
+  }
+}

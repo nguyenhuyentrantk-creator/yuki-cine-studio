@@ -27,7 +27,7 @@
   </div>
   <div class="sectionhead"><div><p class="eyebrow">WORKSPACE</p><h2>Dự án của bạn</h2></div><span class="count" id="projectCount">0 dự án</span></div>
   <div id="projectList" class="projectlist"></div>
-  <div class="note"><b>ⓘ Bản MVP</b><br>Hiện tại ứng dụng hỗ trợ tiền kỳ, storyboard và prompt. Tạo video AI và render MP4 cần kết nối dịch vụ máy chủ ở bước tiếp theo.</div>
+  <div class="note"><b>ⓘ Bản MVP</b><br>Chức năng chính: đọc video gốc, phân tích từng cảnh và tạo prompt tái dựng song ngữ.</div>
 </section>
 
 <section id="create" class="page">
@@ -93,9 +93,64 @@
   </div>
 </section>
 
+
+<section id="analysis" class="page">
+  <p class="eyebrow">VIDEO REVERSE ENGINEERING</p>
+  <h1>Đọc video & tạo prompt</h1>
+  <p class="muted">Tải video gốc lên. YUKI sẽ trích xuất các khung hình đại diện, phân tích từng cảnh và tạo prompt tái dựng bằng tiếng Việt và tiếng Anh.</p>
+  <div class="settingscard">
+    <b>1. Kết nối máy chủ AI</b>
+    <label>Render API URL<input id="analysisApiUrl" type="url" placeholder="https://yuki-cine-studio.onrender.com"></label>
+    <button class="secondary full" id="saveAnalysisApi">Lưu & kiểm tra kết nối</button>
+    <p class="tiny muted" id="analysisConnectionState" aria-live="polite">Chưa kiểm tra kết nối.</p>
+  </div>
+  <div class="settingscard">
+    <b>2. Chọn video cần phân tích</b>
+    <label class="upload">＋ Chọn video từ iPhone
+      <input id="sourceVideoFile" type="file" accept="video/mp4,video/quicktime,video/webm,video/x-m4v">
+    </label>
+    <div id="selectedVideoName" class="tiny muted">Chưa chọn video.</div>
+    <div class="two">
+      <label>Độ chi tiết<select id="analysisDepth">
+        <option value="3-5 giây">Chuyên sâu (mỗi 3–5 giây)</option>
+        <option value="5-8 giây" selected>Cân bằng (mỗi 5–8 giây)</option>
+        <option value="10-15 giây">Tiết kiệm (mỗi 10–15 giây)</option>
+      </select></label>
+      <label>Ngôn ngữ prompt<select id="analysisLanguage">
+        <option value="Song ngữ VI + EN">Song ngữ VI + EN</option>
+        <option value="Tiếng Việt">Tiếng Việt</option>
+        <option value="English">English</option>
+      </select></label>
+    </div>
+    <label>Trọng tâm phân tích<select id="analysisFocus">
+      <option value="Toàn diện">Toàn diện</option>
+      <option value="Nhân vật, trang phục, biểu cảm, tư thế">Nhân vật & tạo hình</option>
+      <option value="Góc máy, cỡ cảnh, ống kính suy đoán, chuyển động camera">Máy quay & bố cục</option>
+      <option value="Bối cảnh, đạo cụ, ánh sáng, màu sắc">Bối cảnh & ánh sáng</option>
+      <option value="Hành động, chuyển động, nhịp dựng, chuyển cảnh">Hành động & chuyển cảnh</option>
+      <option value="Âm thanh, lời thoại, nhạc nền">Âm thanh</option>
+    </select></label>
+    <label>Yêu cầu bổ sung<textarea id="analysisExtra" rows="3" placeholder="Ví dụ: giữ nguyên tạo hình nhân vật xuyên suốt, mô tả kỹ từng góc máy..."></textarea></label>
+    <label class="checkline"><input id="rightsConfirm" type="checkbox"> Tôi có quyền sử dụng hoặc được phép phân tích video này.</label>
+    <button class="primary full" id="runVideoAnalysis">✦ Phân tích video & tạo prompt</button>
+    <div id="analysisProgress" class="analysis-progress" aria-live="polite"></div>
+    <p class="tiny muted">Bản Render hiện tại nhận tệp video tải lên trực tiếp. Link YouTube/TikTok/Facebook không được tự tải. Giới hạn tệp mặc định của máy chủ là 40 MB.</p>
+  </div>
+  <div id="analysisResults" class="settingscard" hidden>
+    <div class="sectionhead"><h2>Kết quả phân tích</h2><button class="smallbtn" id="exportAnalysisJson">Xuất JSON</button></div>
+    <div id="analysisSummary"></div>
+    <div id="analysisBibles"></div>
+    <div id="analysisSceneList"></div>
+    <label>MASTER PROMPT – tái tạo toàn video<textarea id="analysisMasterPrompt" rows="10" readonly></textarea></label>
+    <label>Negative prompt<textarea id="analysisNegativePrompt" rows="4" readonly></textarea></label>
+    <div class="two"><button class="secondary" id="copyMasterPrompt">Sao chép MASTER</button><button class="secondary" id="copyAllScenePrompts">Sao chép prompt cảnh</button></div>
+    <div class="note">AI phân tích từ các khung hình được trích xuất và tín hiệu âm thanh có thể đọc được. Chuyển động giữa các khung hình, tiêu cự chính xác và chi tiết khuất không thể được xác nhận tuyệt đối.</div>
+  </div>
+</section>
+
 <section id="settings" class="page">
   <p class="eyebrow">STUDIO SETTINGS</p><h1>Cài đặt</h1>
-  <div class="settingscard"><b>Trạng thái hệ thống</b><p>Giao diện PWA: <span class="ok">Sẵn sàng</span><br>Quản lý dự án cục bộ: <span class="ok">Sẵn sàng</span><br>AI video API: <span class="wait">Chưa kết nối</span><br>CineCode render worker: <span class="wait">Chưa kết nối</span></p></div>
+  <div class="settingscard"><b>Trạng thái hệ thống</b><p>Giao diện PWA: <span class="ok">Sẵn sàng</span><br>Quản lý dự án cục bộ: <span class="ok">Sẵn sàng</span><br>AI video API: <span class="wait">Kiểm tra trong mục Đọc video</span><br>CineCode render worker: <span class="wait">Chưa kết nối</span></p></div>
   <div class="settingscard"><b>Kết nối trong tương lai</b><p>API key phải được lưu ở máy chủ, tuyệt đối không nhập khóa bí mật vào mã giao diện hoặc chia sẻ trong trình duyệt.</p><p class="muted">Nhà cung cấp có thể tích hợp sau: dịch vụ tạo video, lưu trữ media và máy chủ CineCode.</p></div>
   <div class="settingscard"><b>Dữ liệu</b><p>Dự án MVP được lưu trên trình duyệt hiện tại. Hãy xuất JSON để sao lưu trước khi xóa dữ liệu Safari.</p><button class="secondary full" id="backupBtn">Sao lưu toàn bộ dự án</button></div>
 </section>
@@ -103,6 +158,7 @@
 <nav class="bottomnav">
   <button class="navitem active" data-go="home"><span>⌂</span>Trang chủ</button>
   <button class="navitem" data-go="create"><span>＋</span>Tạo phim</button>
+  <button class="navitem" data-go="analysis"><span>⌕</span>Đọc video</button>
   <button class="navitem" data-go="settings"><span>⚙</span>Cài đặt</button>
 </nav>
 <div id="toast" class="toast"></div>
